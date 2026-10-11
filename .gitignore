@@ -1,0 +1,50 @@
+# Local agent and editor configuration
+/.codex/
+/.vscode/
+/.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local environments; retain shareable examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Root build, cache, temporary, and generated output locations
+/build/
+/out/
+/tmp/
+/artifacts/
+/.cache/
+__pycache__/
+*.pyc
+
+# Loose development logs; reviewed evidence remains visible
+*.log
+!/docs/**/*.log
+
+# Local lifecycle infrastructure; preserve on disk, never include in history
+/.agents/
+/openspec/
+/evidence/
+/.ai-dlc/
+/TEMPLATE_VERSION
+/THIRD_PARTY_NOTICES.md
+/scripts/ai-dlc-status
+/scripts/ai-dlc-verify
+/scripts/ai_dlc_bindings.py
+/scripts/ai_dlc_verification.py
+/scripts/record-conclusion
+/scripts/validate-change
+/docs/WORKFLOW.md
+/docs/AI_DLC_TEMPLATE_WORKFLOW.md
+/docs/AI_DLC_INTEGRATION.md
+/docs/REPOSITORY_INITIALIZATION.md
+
+# Authoritative internal governance; local-only, never include in history
+/PROJECT_CHARTER.md
+/ARCHITECTURE.md
+/ROADMAP.md
