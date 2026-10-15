@@ -1,0 +1,20 @@
+Upstream: ONVIF Media Signing Framework r25.12.6
+Commit: cf7785ab993c18d921094e8e505c2c34a1350f28
+Purpose: reject UNDEFINED_TAG explicitly when decoding a TLV header.
+This is the compatibility fix used by the tested M1 baseline.
+License: MIT; Copyright (c) 2025 ONVIF. All rights reserved.
+See THIRD_PARTY_NOTICES.md for the upstream permission notice.
+
+diff --git a/lib/src/oms_tlv.c b/lib/src/oms_tlv.c
+index 7d53638..a9d91c7 100644
+--- a/lib/src/oms_tlv.c
++++ b/lib/src/oms_tlv.c
+@@ -1077,7 +1077,7 @@ decode_tlv_header(const uint8_t *data,
+   oms_tlv_tag_t tag_from_data = (oms_tlv_tag_t)(*data_ptr++);
+   *data_bytes_read = 0;
+   oms_tlv_tuple_t tlv = get_tlv_tuple(tag_from_data);
+-  if (tlv.tag != tag_from_data) {
++  if (tag_from_data == UNDEFINED_TAG || tlv.tag != tag_from_data) {
+     DEBUG_LOG("Parsed an invalid tag (%d) in the data", tag_from_data);
+     return OMS_INVALID_PARAMETER;
+   }
