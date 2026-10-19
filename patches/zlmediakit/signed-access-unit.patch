@@ -1,0 +1,47 @@
+diff --git a/ext-codec/H264Rtp.cpp b/ext-codec/H264Rtp.cpp
+index 46bb9d3a..b0120bd2 100644
+--- a/ext-codec/H264Rtp.cpp
++++ b/ext-codec/H264Rtp.cpp
+@@ -363,6 +363,27 @@ bool H264RtpEncoder::inputFrame(const Frame::Ptr &frame) {
+     return true;
+ }
+ 
++bool H264RtpEncoder::inputSignedAccessUnit(const std::vector<Frame::Ptr> &nals, bool random_access) {
++    if (nals.empty() || nals.size() > 4096 || _last_frame || _sps || _pps) {
++        return false;
++    }
++    size_t total = 0;
++    const auto pts = nals.front() ? nals.front()->pts() : 0;
++    for (const auto &nal : nals) {
++        if (!nal || nal->getCodecId() != CodecH264 || nal->prefixSize() >= nal->size()
++            || nal->pts() != pts || nal->size() > 8 * 1024 * 1024 - total) {
++            return false;
++        }
++        total += nal->size();
++    }
++    for (size_t i = 0; i < nals.size(); ++i) {
++        const auto &nal = nals[i];
++        packRtp(nal->data() + nal->prefixSize(), nal->size() - nal->prefixSize(),
++                pts, i + 1 == nals.size(), random_access && i == 0);
++    }
++    return true;
++}
++
+ void H264RtpEncoder::flush() {
+     if (_last_frame) {
+         // 如果时间戳发生了变化，那么markbit才置true  [AUTO-TRANSLATED:6b1d0fe0]
+diff --git a/ext-codec/H264Rtp.h b/ext-codec/H264Rtp.h
+index f7a2c57e..273ba0ca 100644
+--- a/ext-codec/H264Rtp.h
++++ b/ext-codec/H264Rtp.h
+@@ -84,6 +84,10 @@ public:
+      */
+     bool inputFrame(const Frame::Ptr &frame) override;
+ 
++    // Experimental opt-in path: complete, already ordered signed AU. Do not
++    // mix with inputFrame(). No parameter-set caching/insertion or lookahead.
++    bool inputSignedAccessUnit(const std::vector<Frame::Ptr> &nals, bool random_access);
++
+     /**
+      * 刷新输出所有frame缓存
+      * Flush all frame buffers in the output

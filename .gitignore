@@ -28,3 +28,7 @@ __pycache__/
 *.key.pem
 *.csr.pem
 *.srl
+
+# Private Gateway operating configuration and camera authentication
+/config/*.local.conf
+*.auth

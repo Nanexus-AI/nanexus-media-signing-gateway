@@ -26,9 +26,9 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-External build/runtime dependencies (not vendored)
--------------------------------------------------
-Nanexus Video Trust Toolkit (Apache-2.0): the prototype build compiles selected
+Historical M1 external build/runtime dependencies (not vendored)
+----------------------------------------------------------------
+Nanexus Video Trust Toolkit (Apache-2.0): the preserved M1 proof build compiles selected
 Toolkit signing, upstream-session and Annex-B source files from an external
 checkout. Toolkit's applicable NOTICE attribution is:
 
@@ -49,6 +49,28 @@ binaries and makes no claim of ONVIF certification or endorsement.
 
 Development/test-only tooling (not shipped Gateway components)
 -------------------------------------------------------------
-FFmpeg/libx264 and MediaMTX are used to generate and serve synthetic test input.
+FFmpeg/libx264 and MediaMTX were used to generate and serve historical synthetic test input.
+Stock Frigate and its external FFmpeg tools are independent recording/test components;
+neither their source nor their images/binaries are included in this repository.
 Their distribution terms apply separately if redistributed. SDK/compiler,
 Meson, Ninja and Python are external build/development tools.
+
+M2 signed-AU patch (included source adaptation)
+----------------------------------------------
+patches/zlmediakit/signed-access-unit.patch adapts H264RtpEncoder at ZLMediaKit
+08329b39bf36c141b0a12c2bcceb819456632d9b.
+Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
+Full original license, including supplementary service-field attribution terms:
+patches/zlmediakit/LICENSE.upstream. Retain upstream RTSP Server/User-Agent
+identities; this patch does not alter them.
+
+patches/onvif/reject-undefined-tag.patch carries the existing ONVIF TLV guard for
+cf7785ab993c18d921094e8e505c2c34a1350f28. The ONVIF MIT permission/copyright notice
+above applies. Neither patch bundles a complete upstream library.
+
+The optional native M2 build now links official ONVIF/OpenSSL and the pinned
+ZLM/ZLToolKit/jsoncpp/FLV/MOV static closure. It does not link GStreamer, Toolkit
+or FFmpeg media libraries. ZLToolKit's FFmpeg-derived Base64 code remains part of
+that closure and retains LGPL-2.1-or-later obligations; its presence is not an
+FFmpeg media-framework dependency. Complete file/object attribution and binary
+source/relinking compliance remain required before any distribution approval.
