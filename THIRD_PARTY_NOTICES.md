@@ -1,6 +1,6 @@
 # Third-party notices
 
-Nanexus Media Signing Gateway Reference Platform
+Nanexus Media Signing Gateway — source/patch distribution
 Copyright 2026 Nanexus-AI contributors
 Nanexus-owned Gateway source is licensed under Apache-2.0; see LICENSE.
 
@@ -17,7 +17,7 @@ including without limitation the rights to use, copy, modify, merge, publish, di
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be
+The above copyright notice and this permission notice (including the next paragraph) shall be
 included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
@@ -25,27 +25,6 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Historical M1 external build/runtime dependencies (not vendored)
-----------------------------------------------------------------
-Nanexus Video Trust Toolkit (Apache-2.0): the preserved M1 proof build compiles selected
-Toolkit signing, upstream-session and Annex-B source files from an external
-checkout. Toolkit's applicable NOTICE attribution is:
-
-Nanexus Video Trust Toolkit
-Copyright 2026 Nanexus-AI contributors
-This product includes software developed for the Nanexus Video Trust Toolkit project.
-Licensed under the Apache License, Version 2.0. See LICENSE.
-
-ONVIF Media Signing Framework (MIT): external signing shared library.
-GStreamer core/app/RTP and RTSP/RTP/parser plugins (LGPL-2.1-or-later): external
-libraries and target plugins. Check the licenses of the actual installed plugins.
-OpenSSL 3.x (Apache-2.0): external cryptographic library.
-
-Keep applicable licenses, copyright notices and source/relinking obligations
-when redistributing dependency sources or binaries. The Gateway LICENSE does
-not replace dependency licenses. This source release bundles no dependency
-binaries and makes no claim of ONVIF certification or endorsement.
 
 Development/test-only tooling (not shipped Gateway components)
 -------------------------------------------------------------
@@ -68,9 +47,17 @@ patches/onvif/reject-undefined-tag.patch carries the existing ONVIF TLV guard fo
 cf7785ab993c18d921094e8e505c2c34a1350f28. The ONVIF MIT permission/copyright notice
 above applies. Neither patch bundles a complete upstream library.
 
-The optional native M2 build now links official ONVIF/OpenSSL and the pinned
-ZLM/ZLToolKit/jsoncpp/FLV/MOV static closure. It does not link GStreamer, Toolkit
-or FFmpeg media libraries. ZLToolKit's FFmpeg-derived Base64 code remains part of
-that closure and retains LGPL-2.1-or-later obligations; its presence is not an
-FFmpeg media-framework dependency. Complete file/object attribution and binary
-source/relinking compliance remain required before any distribution approval.
+M2 external dependencies (not redistributed)
+---------------------------------------------
+The native build uses the externally obtained, pinned ZLMediaKit, ZLToolKit,
+jsoncpp and media-server sources listed in cmake/dependencies.lock.json, and
+external official ONVIF/OpenSSL libraries. See docs/M2-FOUNDATION.md for the
+acquisition/build contract. These dependencies retain their respective upstream
+licenses and file-level notices. No complete upstream source files or trees,
+compiled libraries, executables, SDKs, sysroots or images are included here.
+
+Nanexus-owned source is Apache-2.0. The two distributed differential patches
+include upstream excerpts/adaptations under the terms identified above; the root
+Apache-2.0 license does not relabel those upstream excerpts. Patch context and
+resulting upstream file headers retain the original ownership. See
+patches/README.md for modified paths and ONVIF fix provenance.

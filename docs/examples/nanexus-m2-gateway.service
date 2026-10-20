@@ -1,0 +1,24 @@
+# Prototype example: review the network-online wait provider before enabling.
+# Camera must already be reachable. This unit performs no automatic recovery.
+[Unit]
+Description=Nanexus M2 functional prototype signing gateway
+RequiresMountsFor=/usr/local/nanexus/m2
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+UMask=0077
+WorkingDirectory=/usr/local/nanexus/m2
+ExecStart=/usr/local/nanexus/m2/bin/nanexus-gateway --config /usr/local/nanexus/m2/config/gateway.conf
+Restart=no
+KillSignal=SIGTERM
+KillMode=control-group
+TimeoutStartSec=40
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

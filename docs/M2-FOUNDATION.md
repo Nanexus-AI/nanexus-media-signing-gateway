@@ -3,11 +3,11 @@
 M2 replaces the M1 application architecture. The native build implements one
 H.264/TCP camera → bounded complete-AU admission → official ONVIF signing → signed
 RTSP publication. There is no decoding/transcoding, GStreamer or FFmpeg media
-framework dependency. Toolkit remains an independent verifier. The K11 functional
-milestone includes bounded real-camera, independent receiver and stock Frigate
-recording validation. Those observations do not qualify M2 on ARM64, other cameras,
-industrial reliability or discontinuous motion-retention scenarios. Internal
-validation artifacts are kept outside the product tree.
+framework dependency. Toolkit remains an independent verifier. Bounded host and
+STM32MP257F-DK signing, persistent startup and stock Frigate recording/gap studies
+have been exercised. They do not establish production reliability or universal
+camera/NVR compatibility. See the [ARM64 guide](M2-ARM64.md) and
+[verification guide](M2-VERIFICATION.md) for environment and evidence limits.
 
 ## Pinned isolated build
 
@@ -40,15 +40,40 @@ applies only the two documented patches, rejects staged/untracked source edits,
 and prints a revision/patch-hash manifest:
 
 ```sh
+set -eu
+test ! -e build/m2/onvif-build
+test ! -e build/m2/native
 python3 scripts/prepare-m2-dependencies.py --zlm-source build/cache/ZLMediaKit --onvif-source build/cache/onvif --dest build/m2/deps
 meson setup build/m2/onvif-build build/m2/deps/onvif --prefix "$PWD/build/m2/onvif-prefix" --libdir lib --buildtype release --wrap-mode nodownload -Dsigningplugin=unthreaded
+# Check optional-dependency closure before compilation (see below).
+python3 - <<'PY_CHECK'
+import json
+from pathlib import Path
+b = Path('build/m2/onvif-build')
+deps = json.loads((b / 'meson-info/intro-dependencies.json').read_text())
+assert not any(d['name'] == 'check' for d in deps), 'check dependency selected'
+assert 'OMS_UNIT_TEST' not in (b / 'compile_commands.json').read_text(), 'unit-test build selected'
+PY_CHECK
 ninja -C build/m2/onvif-build -j2
 meson install -C build/m2/onvif-build
 python3 scripts/prepare-m2-dependencies.py --verify --dest build/m2/deps
-cmake -S . -B build/m2/native -DCMAKE_BUILD_TYPE=Release -DNANEXUS_NATIVE=ON -DNANEXUS_DEPS="$PWD/build/m2/deps" -DONVIF_PREFIX="$PWD/build/m2/onvif-prefix"
+cmake -S . -B build/m2/native -DCMAKE_DISABLE_FIND_PACKAGE_JEMALLOC=TRUE -DCMAKE_BUILD_TYPE=Release -DNANEXUS_NATIVE=ON -DNANEXUS_DEPS="$PWD/build/m2/deps" -DONVIF_PREFIX="$PWD/build/m2/onvif-prefix"
 cmake --build build/m2/native -j2
 ctest --test-dir build/m2/native --output-on-failure
 ```
+
+Use fresh build directories: cached optional-package results from an earlier
+configuration are not a reproducible starting point.
+
+The accepted host environment used OpenSSL 3.0.13, with jemalloc and ONVIF's
+optional `check` dependency absent. The CMake flag above uses an existing CMake
+facility to prevent automatic jemalloc selection; the post-setup check stops
+before compilation if ONVIF selected `check`/`OMS_UNIT_TEST`. Use a development
+environment without that dependency; do not remove system packages as a recipe
+step. These closure checks are documented adaptations, statically reviewed here;
+the original accepted builds exercised the same absent-dependency closure without
+them. No build-driver source change is required. Upstream embeds build time, so
+source/patch reproducibility does not imply bit-identical executable hashes.
 
 CMake verifies prepared source identities/diffs during configuration. Verify again
 before incremental builds after any manual source changes. Build ONVIF from the
@@ -61,8 +86,8 @@ Pinned ZLM's existing MP4-enabled FLV/MOV helper closure is retained because
 ext-codec includes those headers; this does not add a recording or transcoding
 workflow. Unused executables/features and reporting are disabled. Full upstream
 trees and binaries stay in ignored build directories. See [patch provenance](../patches/README.md)
-and [third-party notices](../THIRD_PARTY_NOTICES.md). Publication remains subject to
-license/attribution/source-relinking review, including ZLToolKit LGPL Base64.
+and [third-party notices](../THIRD_PARTY_NOTICES.md). This distribution contains
+source/patches and instructions, not upstream trees or compiled libraries.
 
 The default `NANEXUS_NATIVE=OFF` build supports configuration validation and
 portable guard tests without media dependencies; runtime invocation reports that
@@ -119,7 +144,8 @@ slow-reader/multi-client resource qualification is outside this experiment scope
 
 ```sh
 build/m2/native/nanexus-gateway --check-config config/gateway.local.conf
-build/m2/native/nanexus-gateway --config config/gateway.local.conf --duration 20
+build/m2/native/nanexus-gateway --config config/gateway.local.conf
+# For a bounded observation, append --duration 20.
 ```
 
 Startup order: Camera → Gateway → Frigate. Duration is 1–600 wall-clock seconds
@@ -147,8 +173,9 @@ to milliseconds, with DTS=PTS under the no-B restriction. No timing is repaired.
 
 One serialized, RAII-owned official context signs all admitted AUs independently
 of readers. Before every original NAL: peek/drain generated SEIs, feed inserted
-SEIs to signing, then submit the original. Original raw NAL bytes/order remain
-unchanged; transport framing may differ. No H264Track media submission, parameter
+SEIs to signing, then submit the original. The implementation retains admitted raw NAL bytes/order; controlled host tests
+checked preservation. ARM64 camera-to-output byte identity is not independently
+proven. Transport framing may differ. No H264Track media submission, parameter
 set insertion, AUD removal, decode or transcode occurs. H264Track is used only to
 construct SDP. Only the private signed-AU encoder entry point is used.
 
@@ -188,3 +215,9 @@ Toolkit status is evidence about that input/output and selected trust anchor,
 not camera truth or downstream retained-recording completeness. Publisher, retained
 MP4 and any separately recovered cache suffix require distinct coverage and
 completeness assessments. A valid observed suffix is not full source coverage.
+
+The optional positive fixture test needs an externally prepared, correctly
+AU-indexed fixture; this release does not include a fixture generator. The
+[verification guide](M2-VERIFICATION.md) provides an accurate independent-file
+alternative and explains this limitation. CTest alone runs guard tests, not the
+full positive signing fixture path.
