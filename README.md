@@ -29,7 +29,7 @@ The gateway sits between an existing camera and downstream systems.
 
 It does not require the camera to implement ONVIF Media Signing. Instead, signing is performed at the gateway, using its own configured signing identity.
 
-The resulting stream can be consumed by RTSP-compatible software, while signing-aware verification tools can examine the embedded signing evidence.
+The resulting stream can be consumed by RTSP-compatible software, while ONVIF Media Signing-compatible verification tools, including the [Nanexus Video Trust Toolkit](https://github.com/Nanexus-AI/nanexus-video-trust-toolkit), can independently verify the signed video and inspect its signing evidence.
 
 Signing authenticates video from the gateway's signing boundary onward; it does not establish the authenticity of the camera's original capture.
 
@@ -63,7 +63,7 @@ The gateway adds ONVIF signing metadata while retaining the admitted encoded vid
 
 **Independent verification**
 
-The signed stream can be recorded and subsequently examined using an independent ONVIF-compatible verification workflow, including the Nanexus Video Trust Toolkit.
+The signed stream can be recorded and subsequently examined using an independent ONVIF-compatible verification workflow, including the [Nanexus Video Trust Toolkit](https://github.com/Nanexus-AI/nanexus-video-trust-toolkit).
 
 **Embedded standalone operation**
 
