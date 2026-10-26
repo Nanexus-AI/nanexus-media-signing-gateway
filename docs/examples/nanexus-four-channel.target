@@ -1,0 +1,7 @@
+[Unit]
+Description=Nanexus four-channel signing Gateway
+Wants=nanexus-four-channel@cam1.service nanexus-four-channel@cam2.service nanexus-four-channel@cam3.service nanexus-four-channel@cam4.service
+After=network.target
+
+[Install]
+WantedBy=multi-user.target

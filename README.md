@@ -110,6 +110,14 @@ The documented workflow is:
 
 For normal standing operation, the Gateway is started with `nanexus-gateway --config FILE`. The detailed guides cover dependency versions, build commands, signing identity setup, service installation, and verification procedures.
 
+## Local Four-Channel Extension
+
+A four-channel extension of the native v0.2.0 media path is available in this
+working tree. It shares one Gateway signing identity while running each channel
+in an independent process with its own RTSP output and recovery. See the
+[four-channel configuration, services and validation guide](docs/FOUR-CHANNEL.md).
+This local development work does not change the published v0.2.0 release claims.
+
 ## Scope and Current Limitations
 
 **v0.2.0 is a functional prototype, not a production-ready security appliance.**
