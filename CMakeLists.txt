@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(nanexus_gateway VERSION 0.2.0 LANGUAGES C CXX)
+project(nanexus_gateway VERSION 0.3.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

@@ -9,6 +9,13 @@ may evolve; they do not change the Gateway's pinned build inputs. The file comma
 below were exercised in M2 validation. No Toolkit binary or signing identity is
 shipped here.
 
+For v0.3.0, observe and verify each channel independently using its own signed
+output URL; the [four-channel guide](FOUR-CHANNEL.md) lists the default ports and
+paths. A shared signer certificate does not combine the signing histories or
+cryptographically identify the original cameras. Worker recovery starts a new
+session. Live signing freshness, cryptographic verification and recorder coverage
+are separate observations; one does not establish the others.
+
 ## Disposable test identity
 
 This OpenSSL pattern was used in the historical public proof workflow. Generate
@@ -56,6 +63,10 @@ must restrict access. No production key-management claim follows.
 ## Receiver evidence
 
 Start the configured camera and Gateway as described in the [ARM64 guide](M2-ARM64.md).
+For sectioned configurations, start the selected worker with `--channel camN`
+and use that channel's output URL in the receiver. The example below keeps the
+legacy single-channel path `/signed/camera`; the four-channel defaults instead
+use `/signed/camera1` through `/signed/camera4` on ports 18554–18557.
 The standing Gateway uses no --duration limit. Frigate/another receiver connects
 independently; Gateway does not contain a Frigate destination setting or push into
 Frigate. Preserve originals and hashes before extracting verification inputs.
@@ -184,10 +195,11 @@ The existing native-media-tests accepts an unsigned H.264 Annex-B fixture, a
 five-column AU manifest and disposable identity, as described in the
 [native guide](M2-FOUNDATION.md#focused-evidence-tests). Accepted controlled tests
 verified signing, NAL preservation, packetization/reconstruction and EOS, with
-independent VALID results. The fixture was a specific locally generated synthetic
-input; this release does not ship it or a public generator for the matching AU
-manifest. Do not substitute arbitrary H.264 bytes and assume valid AU indexing.
-A complete self-contained fixture-generation recipe remains unavailable; no new
-generator is invented here. The smallest usable alternative is the short
-receiver/retained-file verification path above, with its explicit preservation and
-boundary limits. CTest guard success alone is not the positive signing test.
+independent VALID results. Version v0.3.0 provides the
+[four-channel lab's preparation command](FOUR-CHANNEL.md#local-verification) to
+generate controlled fixtures, matching AU manifests and a disposable test identity
+with external tools. Generated media and credentials are not distributed. Do not
+substitute arbitrary H.264 bytes and assume valid AU indexing. The short
+receiver/retained-file verification path above remains an alternative, with its
+explicit preservation and boundary limits. CTest guard success alone is not the
+positive signing or four-channel network test.

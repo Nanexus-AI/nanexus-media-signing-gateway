@@ -19,7 +19,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 UUID = bytes.fromhex('005bc93f2d715e95ada4796f90877a6f')
-SOURCE_IMAGE = '32ecec42d5c7'
+SOURCE_IMAGE = 'bluenviron/mediamtx@sha256:32ecec42d5c716f0b85809b11b6c32f54126546ba89fc85ac57dbcf74738bb4e'
 SOURCE_NAME = 'nanexus-four-channel-source'
 
 

@@ -1,8 +1,9 @@
 # Four-channel native Gateway
 
-The four-channel extension uses the v0.2.0 **native ZLMediaKit + official ONVIF**
-media path. It does not use GStreamer. Build with `NANEXUS_NATIVE=ON` using the
-existing [host](M2-FOUNDATION.md) or [ARM64](M2-ARM64.md) instructions and the same
+Version v0.3.0 extends the v0.2.0 **native ZLMediaKit + official ONVIF** media path
+to one to four independent workers. It does not use GStreamer. Build with
+`NANEXUS_NATIVE=ON` using the existing [host](M2-FOUNDATION.md) or
+[ARM64](M2-ARM64.md) instructions and the same
 pinned dependencies/patches. The default non-native build only checks configuration.
 
 ## Configuration and invocation
@@ -31,6 +32,9 @@ mixed formats, file bounds) and shared-identity/limit errors fail the file.
 A conflicting listener port also fails affected workers. Errors never echo values.
 A multi-channel invocation requires `--channel`; the CLI does not launch child
 processes. Existing unsectioned single-channel files and commands remain supported.
+Configuration checking does not connect to cameras or prove that signing is
+running. An output listener appears only after the worker admits the required
+in-band SPS/PPS and IDR; an unavailable input therefore has no usable signed output.
 
 Four default NVR URLs, substituting the reachable Gateway address:
 
@@ -81,10 +85,34 @@ systemctl restart nanexus-four-channel@cam2.service
 systemctl stop nanexus-four-channel.target
 ```
 
+For a deliberate migration, keep the original installation and a protected backup
+of its configuration/identity. Provision the intended shared identity and camera
+credentials separately in the new root; do not replace them with lab-generated
+keys. Update the example's identity paths to the protected files and its listener
+addresses for your network, then check the full configuration. The old single
+service and cam1 commonly share port 18554: stop the old service before starting
+the four-channel target. Disable the old service's boot startup when accepting
+the cutover. Service names are installation-specific; the supplied old example is
+`nanexus-m2-gateway.service`. Reverting requires stopping the four-channel target
+before re-enabling/starting the preserved old service. Keep identities protected
+throughout; this guide does not perform a migration automatically.
+
 The target example starts all four instances; with fewer channels start only the
-configured instances instead. Enable boot operation separately after validation,
-after reviewing the network setup. Workers order after `network.target` and retry
-independently while the network or camera is unavailable; they do not pull in a
+configured instances instead. If using the target with fewer than four inputs,
+mask each unused instance so it does not retry a missing configuration or input:
+
+```sh
+systemctl mask --now nanexus-four-channel@cam4.service
+# When that input is configured and needed:
+systemctl unmask nanexus-four-channel@cam4.service
+systemctl start nanexus-four-channel@cam4.service
+```
+
+After validation and review of the network setup, enable the target at boot with
+`systemctl enable nanexus-four-channel.target`; its Wants relationships
+start the unmasked workers without separately enabling every instance. Workers
+order after `network.target` and retry independently while the network or camera
+is unavailable; they do not pull in a
 global wait-online job that could block all four channels. No reboot
 or firmware change is needed to install this application extension.
 
@@ -126,10 +154,22 @@ I/P-only fixtures, approximately 2 Mbps, GOP 30 with repeated SPS/PPS, and creat
 a two-day test identity. This is test-source encoding on the host; Gateway performs
 no encoding/transcoding. Output directories must not already exist.
 The live test needs Docker access and a locally cached MediaMTX 1.15.3 image
-(`32ecec42d5c7` in the exercised lab), local TCP ports 18654 and 18554–18557, and
+(`bluenviron/mediamtx@sha256:32ecec42d5c716f0b85809b11b6c32f54126546ba89fc85ac57dbcf74738bb4e`),
+local TCP ports 18654 and 18554–18557, and
 one healthy independent receiver per channel. It refuses existing evidence and
 container-name conflicts, owns its test processes/container, and cleans them up.
 It does not install or stop board services or existing Frigate containers.
+Acquire that pinned image separately before running the test, if it is not
+already cached:
+
+```sh
+docker pull bluenviron/mediamtx@sha256:32ecec42d5c716f0b85809b11b6c32f54126546ba89fc85ac57dbcf74738bb4e
+```
+
+The lab itself uses `--pull=never`; neither the test nor the product build
+downloads an image implicitly. The exercised image is Linux/amd64 for the
+development host. The Gateway's ARM64 cross-build is independent of this host
+test-source container.
 
 `tests/rtsp_receive.py` is the independent bounded RTSP/TCP evidence receiver.
 It checks sequence/SSRC/fragment/AU boundaries, preserves original RTP and Annex-B

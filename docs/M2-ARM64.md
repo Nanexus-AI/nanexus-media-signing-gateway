@@ -6,6 +6,13 @@ cross-build/deployment mechanics; this public recipe has been statically checked
 not executed as a new build or deployment. Run only the steps appropriate to your
 own test system. Do not overwrite an existing installation or its signing identity.
 
+The build procedure also applies to v0.3.0; dependency revisions and ABI
+requirements are unchanged. For one to four workers, use the separate installation
+layout, sectioned configuration, systemd template and explicit single-channel
+cutover described in the [four-channel guide](FOUR-CHANNEL.md). The single-channel
+installation below remains a supported legacy example. Do not run both service
+sets on conflicting output ports or copy lab identities over existing credentials.
+
 ## Validated environment and prerequisites
 
 - STM32MP257F-DK, Cortex-A35/AArch64, PCB MB1605C.
@@ -265,8 +272,10 @@ Preserve signing-bearing receiver evidence and [verify independently](M2-VERIFIC
 Do not stop a standing Gateway just to manufacture a complete receiver result.
 SIGINT/SIGTERM deliberately finalizes pending signing data once and permits a
 bounded drain. A source/media/signing failure exits nonzero without clean EOS.
-An observed media_gap exit required operator recovery; no reconnect or continuity
-repair is implemented. Before any operator restart, preserve failure evidence and
+An observed media_gap exit in the earlier single-channel study required operator
+recovery. The v0.3.0 four-channel services restart failed workers independently;
+the process itself does not reconnect or repair continuity. Before any restart,
+preserve failure evidence and
 recognize the new signing epoch. Local EOS/exit success cannot prove downstream
 receipt or retention; MP4 closure is not ONVIF EOS.
 
@@ -284,7 +293,10 @@ manager's wait-online implementation is enabled and actually waits for the camer
 interface. The accepted board instead used a specific systemd-networkd routable
 IPv4 interface wait. Adapt that dependency to your system before enabling the
 example; no interface name or manager is assumed here. Camera must already be
-reachable. Arbitrary boot ordering and automatic recovery are not promised.
+reachable. Arbitrary boot ordering and automatic recovery are not promised by this
+legacy example. The v0.3.0 [four-channel services](FOUR-CHANNEL.md#independent-services)
+instead order after `network.target` and retry workers independently; use those
+instructions when installing the four-channel layout.
 
 Before copying or enabling the example, inspect the effective service definition
 and all existing overrides on your target. These are read-only queries:
