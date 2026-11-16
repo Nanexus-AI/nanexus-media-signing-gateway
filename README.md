@@ -6,9 +6,9 @@ Many installed IP cameras can stream H.264 video over RTSP but do not support cr
 
 The project also provides a standards-based signing source for developers and researchers evaluating how NVR/VMS systems preserve, record, and verify signed video. It offers a practical reference for exploring the integration of media signing into existing video-surveillance workflows.
 
-The gateway receives an existing camera's H.264 RTSP stream, adds ONVIF Media Signing information, and republishes the signed video over RTSP for recording, monitoring, or independent verification. It operates on already-encoded video, without decoding or transcoding the original stream.
+The gateway receives up to four compatible cameras' H.264 RTSP streams, adds ONVIF Media Signing information independently to each stream, and republishes four separate signed RTSP outputs for recording, monitoring, or independent verification. It operates on already-encoded video, without decoding or transcoding the original streams.
 
-**Current release: v0.2.0 — Functional Prototype**
+**v0.3.0 — Four-Channel Functional Prototype**
 
 ## How It Works
 
@@ -26,6 +26,8 @@ The gateway receives an existing camera's H.264 RTSP stream, adds ONVIF Media Si
 ```
 
 The gateway sits between an existing camera and downstream systems.
+
+The diagram represents one channel. Up to four channels run as separate worker processes, each with its own camera connection, signing context, RTSP listener and recovery. All workers use one configured Gateway signing identity.
 
 It does not require the camera to implement ONVIF Media Signing. Instead, signing is performed at the gateway, using its own configured signing identity.
 
@@ -49,7 +51,7 @@ The implementation combines:
 
 ZLMediaKit's ZLToolKit dependency is also pinned to the validated commit `d7d601200f65f3111dbf9d20ed7f14d2654bbd6e`. The source preparation process applies the required Nanexus patches to the exact upstream revisions.
 
-These components operate within one Gateway executable. No separate ZLMediaKit MediaServer or ONVIF signing daemon is required.
+These components operate within each Gateway worker executable. No separate ZLMediaKit MediaServer or ONVIF signing daemon is required.
 
 ## What the Prototype Provides
 
@@ -69,17 +71,23 @@ The signed stream can be recorded and subsequently examined using an independent
 
 The gateway runs on the STM32MP257F-DK under Linux, with a persistent service configuration demonstrated on the reference platform.
 
+**Independent channels and recovery**
+
+One to four workers share a Gateway signing identity while keeping their signing sessions and RTSP outputs separate. The supplied systemd services restart a failed channel independently; recovery starts a new signing session.
+
 **Integration with existing recording systems**
 
 The prototype has been exercised with Frigate, a widely used open-source NVR. The experiments demonstrate that signing information can survive ordinary MP4 recording segmentation and remain available for independent historical verification.
 
 ## What Has Been Demonstrated
 
-The v0.2.0 implementation has been tested with a real Tapo C210 H.264 RTSP camera, on both a Linux development host and the STM32MP257F-DK reference platform.
+The native implementation has been tested on a Linux development host and the STM32MP257F-DK reference platform. Four simultaneous controlled H.264 inputs exercised independent signing, signed RTSP publication, original encoded-payload preservation and verification. Deliberately finalized receiver captures verified VALID and complete.
 
-The completed work includes successful camera ingestion, signing, signed RTSP publication, and independent verification of the resulting media.
+Reference-board fault tests exercised an unavailable input, source loss, worker termination and a per-worker memory-limit fault. The affected channel recovered while the other workers continued without restarting. This establishes the tested process-level recovery behavior, not continuity across a restarted signing session.
 
-Additional integration experiments with Frigate confirmed that ordinary recording-file boundaries can preserve signing continuity. Tests involving intentionally unretained recording intervals also demonstrated that missing signing history can be detected during cross-gap verification.
+Three physical H.264 cameras, including a Tapo C210 and two additional IP cameras, were also exercised concurrently. Receiver recordings verified with signature integrity ok and continuity intact; their overall PARTIAL results retained a pending tail because the receivers stopped while signing continued. This is not a four-physical-camera or universal compatibility claim.
+
+Frigate integration experiments demonstrated that signing metadata survives ordinary MP4 recording segmentation. Retained files can be PARTIAL with intact signatures and an unresolved tail; recording coverage and gaps must be evaluated separately. Earlier single-channel tests involving intentionally unretained intervals also demonstrated that missing signing history can be detected during cross-gap verification.
 
 These results establish the core functionality of an operational embedded signing-gateway prototype. They do not imply compatibility with every camera, NVR, video format, or recording policy.
 
@@ -95,9 +103,9 @@ The documented workflow is:
 
 1. Obtain and prepare the pinned dependencies.
 2. Build the Gateway and required ONVIF signing library.
-3. Configure the camera endpoint and signing identity.
-4. Start the Gateway after the camera and network are available.
-5. Connect an RTSP receiver or recording system to the signed output.
+3. Configure one to four camera endpoints, separate output listeners and a shared signing identity.
+4. Start the configured workers, using the supplied systemd services for independent retries.
+5. Connect an RTSP receiver or recording system to each signed output.
 6. Preserve signed video and verify it independently.
 
 ### Documentation
@@ -106,21 +114,34 @@ The documented workflow is:
 - [STM32MP257F-DK ARM64 build, installation, and operation](docs/M2-ARM64.md)
 - [Recording and independent signature verification](docs/M2-VERIFICATION.md)
 - [Gateway configuration example](config/gateway.example.conf)
+- [Four-channel configuration, services and verification](docs/FOUR-CHANNEL.md)
+- [Four-channel configuration example](config/gateway-four-channel.example.conf)
 - [Upstream dependencies and patches](patches/README.md)
 
-For normal standing operation, the Gateway is started with `nanexus-gateway --config FILE`. The detailed guides cover dependency versions, build commands, signing identity setup, service installation, and verification procedures.
+For normal standing operation with a sectioned configuration, start each worker with `nanexus-gateway --config FILE --channel camN`. The legacy single-channel configuration and `nanexus-gateway --config FILE` invocation remain supported. The detailed guides cover dependency versions, build commands, signing identity setup, service installation, and verification procedures.
+
+## Four-Channel Operation
+
+Use `[gateway]` for the shared signing identity and `[channel.cam1]` through
+`[channel.cam4]` for each input and output. Each configured channel needs a distinct
+listener port. The example uses ports 18554–18557 and paths `/signed/camera1`
+through `/signed/camera4`. For remote NVR access, replace the example's loopback
+bind addresses with appropriate local listener addresses and give the NVR the
+Gateway's reachable IP. See the [four-channel guide](docs/FOUR-CHANNEL.md) for
+configuration checking, service installation and migration from a single channel.
 
 ## Scope and Current Limitations
 
-**v0.2.0 is a functional prototype, not a production-ready security appliance.**
+**v0.3.0 is a functional prototype, not a production-ready security appliance.**
 
-The validated implementation currently focuses on a compatible H.264 RTSP camera and a single signing gateway instance.
+The implementation supports one to four H.264 RTSP/TCP inputs on the native media path. Four-channel controlled-input validation and three-camera physical-input observations do not establish a qualified maximum channel capacity for arbitrary workloads.
 
 The prototype demonstrates the complete core signing workflow, but does not yet provide production-level device management, security hardening, broad camera compatibility, or qualified 24/7 unattended reliability.
 
 In particular:
 
-- Automatic recovery from all camera or media-stream interruptions is not implemented; an observed media gap required operator recovery.
+- The supplied services retry failed workers independently. A restart creates a new signing session; continuity across outages or recovery from every possible failure is not claimed.
+- H.265, B frames, output RTSP authentication/TLS and qualified high-load or 24/7 operation are outside the validated scope. Use a controlled network.
 - Signing establishes authenticity at the gateway boundary, not at the camera sensor.
 - Recording gaps may interrupt cross-interval verification even when the retained portions verify independently.
 - ONVIF Media Signing Add-on certification is not claimed.
@@ -156,6 +177,15 @@ The first milestone demonstrated the initial media-signing approach and establis
 
 The second milestone introduces a substantially different architecture, integrating native ZLMediaKit-based RTSP handling with the official ONVIF Media Signing Framework in an independently runnable embedded gateway.
 
-Version v0.2.0 replaces the earlier architecture for this release; the GStreamer-based Milestone 1 adapter is not required.
+Version v0.2.0 replaced the earlier architecture; the GStreamer-based Milestone 1 adapter is not required by the native versions.
 
 The release provides a reproducible, openly available implementation for experimentation and integration with recording and independent verification systems.
+
+**v0.3.0 — Four-Channel Functional Prototype**
+
+This version extends the native media path to one to four independent workers,
+with a shared Gateway signing identity, separate RTSP listeners and per-channel
+systemd recovery. It retains legacy single-channel configuration support and the
+same pinned upstream dependencies and patches. Distribution remains source code,
+small patches and build/operation instructions; no prebuilt appliance image or
+signing identity is supplied.

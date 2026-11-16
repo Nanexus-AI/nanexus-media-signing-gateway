@@ -78,9 +78,10 @@ struct Runtime:std::enable_shared_from_this<Runtime> {
         cleanup=poller->doDelayTask(finalized?config.drain_timeout_ms:1,[weak,finalized,reason]() {
             if(auto self=weak.lock()) {
                 self->input.reset(); self->publisher.reset(); self->signer.reset();
+                if(!self->config.channel_id.empty()) std::cout<<"channel="<<self->config.channel_id<<' ';
                 std::cout<<"state="<<(finalized?"stopped":"failed")<<" reason="<<reason
                          <<" published_aus="<<self->aus<<" admitted_original_nals="<<self->nals
-                         <<" eos_emitted="<<(finalized?1:0)<<" recording_completeness=unknown\n";
+                         <<" eos_emitted="<<(finalized?1:0)<<" recording_completeness=unknown"<<std::endl;
                 self->result.set_value(finalized?0:1);
             }
             return uint64_t(0);
@@ -107,7 +108,10 @@ struct Runtime:std::enable_shared_from_this<Runtime> {
             decoder.inputRtp(packet);
             AccessUnit au;
             if(!admission.complete(au)) return;
-            if(!admitted) { publisher.reset(new Publisher(config,poller,au)); admitted=true; first=Clock::now(); }
+            if(!admitted) {
+                publisher.reset(new Publisher(config,poller,au)); admitted=true; first=Clock::now();
+                if(!config.channel_id.empty()) std::cout<<"channel="<<config.channel_id<<" state=running signing_session=new"<<std::endl;
+            }
             if(have_pending) { publisher->publish(signer->sign(pending)); ++aus; }
             nals+=au.nals.size(); pending=std::move(au); have_pending=true;
         } catch(...) { finish(false,"media_signing_or_publication_failed"); }

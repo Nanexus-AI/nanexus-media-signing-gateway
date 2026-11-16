@@ -1,8 +1,9 @@
 # Native H.264 signing Gateway
 
-M2 replaces the M1 application architecture. The native build implements one
-H.264/TCP camera → bounded complete-AU admission → official ONVIF signing → signed
-RTSP publication. There is no decoding/transcoding, GStreamer or FFmpeg media
+M2 replaces the M1 application architecture. Version v0.3.0 retains that native
+path and supports one to four independent workers. Each implements one H.264/TCP
+camera → bounded complete-AU admission → official ONVIF signing → signed RTSP
+publication. There is no decoding/transcoding, GStreamer or FFmpeg media
 framework dependency. Toolkit remains an independent verifier. Bounded host and
 STM32MP257F-DK signing, persistent startup and stock Frigate recording/gap studies
 have been exercised. They do not establish production reliability or universal
@@ -95,6 +96,11 @@ native adapters were not built. It is not a functional Gateway build.
 
 ## Configuration and operation
 
+For one to four channels using a shared identity, use the
+[four-channel configuration and service guide](FOUR-CHANNEL.md). Each worker uses
+`--config FILE --channel camN`; all channels need distinct output listener ports.
+The unsectioned single-channel format below remains supported without a selector.
+
 Copy `config/gateway.example.conf` to `config/gateway.local.conf` (ignored). Fields:
 
 | Field | Meaning |
@@ -150,7 +156,9 @@ build/m2/native/nanexus-gateway --config config/gateway.local.conf
 
 Startup order: Camera → Gateway → Frigate. Duration is 1–600 wall-clock seconds
 from first admitted AU, with up to the configured drain wait added. Without
-`--duration`, run until SIGINT/SIGTERM. No reconnect or retry. Startup deadline
+`--duration`, run until SIGINT/SIGTERM. There is no in-process reconnect or retry;
+the v0.3.0 systemd instances independently restart failed workers with a new
+signing session. Startup deadline
 includes waiting for admissible in-band SPS/PPS+IDR. Upstream verbose logs are
 suppressed because they can contain credentials; fixed runtime reason codes and
 counts are emitted without URLs or private paths. Check-config does not open
@@ -216,8 +224,10 @@ not camera truth or downstream retained-recording completeness. Publisher, retai
 MP4 and any separately recovered cache suffix require distinct coverage and
 completeness assessments. A valid observed suffix is not full source coverage.
 
-The optional positive fixture test needs an externally prepared, correctly
-AU-indexed fixture; this release does not include a fixture generator. The
-[verification guide](M2-VERIFICATION.md) provides an accurate independent-file
-alternative and explains this limitation. CTest alone runs guard tests, not the
-full positive signing fixture path.
+The optional positive fixture test needs a correctly AU-indexed fixture. The
+v0.3.0 [four-channel lab](FOUR-CHANNEL.md#local-verification) includes a generator
+for four controlled H.264 inputs, AU manifests and a fresh disposable identity;
+it uses external FFmpeg/OpenSSL tools. It does not ship generated media or keys.
+The [verification guide](M2-VERIFICATION.md) also provides an independent-file
+alternative. CTest alone runs guard tests, not the full positive signing fixture
+or multi-stream network path.
